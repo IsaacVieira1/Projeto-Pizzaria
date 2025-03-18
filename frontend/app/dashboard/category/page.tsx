@@ -3,38 +3,48 @@ import { Button } from "../../../app/dashboard/components/button"
 import { api } from '../../../services/api' 
 import { redirect } from 'next/navigation'
 import { getCookieServer } from '../../../lib/cookieServer'
+import { AxiosError } from 'axios'
 
-export default function Category(){
+export default function Category() {
 
-  async function handleRegisterCategory(formData: FormData){
+  async function handleRegisterCategory(formData: FormData) {
     "use server"
     
     const name = formData.get("name")
+    if (!name) return;
 
-    if(name === "") return;
+    const data = { name };
+    
+    try {
+      const token = await getCookieServer(); 
 
-    const data = {
-      name: name,
-    }
+      console.log("Token recebido:", token); 
 
-    const token = getCookieServer();
-
-    await api.post("/category", data, {
-      headers:{
-        Authorization: `Bearer ${token}`
+      if (!token) {
+        console.error("Erro: Token não encontrado.");
+        return;
       }
-    })
-    .catch((err) => {
-      console.log(err);
-      return;
-    })
 
-    redirect("/dashboard")
+      const response = await api.post("/category", data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
 
+      console.log("Resposta da API:", response.data);
+      redirect("/dashboard");
+
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {   
+        console.error("Erro na requisição:", err.response?.data || err.message);
+      } else {
+        console.error("Erro desconhecido:", err);
+      }
+    }
   }
 
-
-  return(
+  return (
     <main className={styles.container}>
       <h1>Nova Categoria</h1>
 
@@ -53,5 +63,5 @@ export default function Category(){
         <Button name="Cadastrar" />
       </form>
     </main>
-  )
+  );
 }
